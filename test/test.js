@@ -1,2 +1,5 @@
 var url = require('url')
-console.log(url.parse(window.location.href))
+var href = url.parse(window.location.href)
+window.document.body.innerHTML = JSON.stringify(href)
+
+
