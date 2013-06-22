@@ -7,7 +7,6 @@ var http = require('http')
 
 var watchify = require('watchify')
 var st = require('st')
-var qs = require('qs')
 var mkdirp = require('mkdirp')
 var through = require('through')
 
@@ -32,9 +31,18 @@ bfydir.prototype.listen = function() {
   return this.server
 }
 
+function fakeIndex(path) {
+  return '<html><body><script src="'+path+'"></script></body></html>'
+}
+
 bfydir.prototype.handleRequest = function(req, res, next){
   var self = this
-  var parsedUrl = url.parse(req.url)
+  var parsedUrl = url.parse(req.url,true)
+  if (parsedUrl.query.bfydirEntry) {
+    var fakePath = url.resolve( parsedUrl.pathname
+                            , parsedUrl.query.bfydirEntry )
+    return res.end(fakeIndex(fakePath))
+  }
   var filePath = path.resolve(path.join(self.dirPath, parsedUrl.pathname))
   var isJs = /\.js$/i.test(filePath)
   if (!isJs) {

@@ -3,7 +3,6 @@ var fs = require('fs')
 var path = require('path')
 var vm = require('vm')
 var request = require('request')
-var destroyer = require('destroyer')
 var bfydir = require('../.')({dir:__dirname})
 var port = 40000+~~(Math.random()*10000)
 

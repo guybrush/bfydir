@@ -1,12 +1,16 @@
-# bfydir (WORK IN PROGRESS)
+# bfydir
 
 http-server which [watchify](https://github.com/substack/watchify)'s
 all the `*.js` in a dir uppon request.
 
     $ npm i -g guybrush/bfydir
-    $ echo "document.body.innerHTML = require('url').parse(window.location.href).hostname" > ~/a.js
-    $ echo "if (require('assert').equal(1,1)) console.log('browserified assert')" > ~/b.js
+    $ echo "module.exports = 'a'" > ~/a.js
+    $ echo "module.exports = 'b'" > ~/b.js
+    $ echo "console.log(require('./a'), require('./b'))" > ~/entry.js
     $ bfydir ~ -p 8005
-    $ curl http://localhost:8005/a.js
-    $ curl http://localhost:8005/b.js
+    $ node -e `curl http://localhost:8005/entry.js`    # a b
+    $ echo "module.exports = 'foo'" > ~/a.js
+    $ node -e `curl http://localhost:8005/entry.js`    # foo b
+    $ # <html><body><script src="/entry.js"></script></body></html>
+    $ curl http://localhost:8005?bfydirEntry=entry.js
 
