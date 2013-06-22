@@ -3,6 +3,7 @@ module.exports = bfydir
 var url = require('url')
 var path = require('path')
 var fs = require('fs')
+var http = require('http')
 
 var watchify = require('watchify')
 var st = require('st')
@@ -14,13 +15,21 @@ function bfydir(opts) {
   if (!(this instanceof bfydir)) return new bfydir(opts)
   opts = opts || {}
   var self = this
-  self.dirPath = path.resolve(process.cwd(), opts.dirPath) 
-  self.bundlesPath = opts.bundlesPath
-                     || path.join(self.dirPath, '.bfydir-bundles')
-  self.bundlesMount = st({path:self.bundlesPath, url:'/', dot:true, cache:false})
+  self.server = null
   self.bundleWatchers = {}
+  self.dirPath = path.resolve(process.cwd(), opts.dir)
+  self.bundlesPath = opts.bundles
+                     || path.join(self.dirPath, '.bfydir-bundles')
   mkdirp.sync(self.bundlesPath)
+  self.dirMount = st({path:self.dirPath, url:'/', dot:true, cache:false})
+  self.bundlesMount = st({path:self.bundlesPath, url:'/', dot:true, cache:false})
   return this
+}
+
+bfydir.prototype.listen = function() {
+  this.server = http.createServer(this.handleRequest.bind(this))
+  this.server.listen.apply(this.server,arguments)
+  return this.server
 }
 
 bfydir.prototype.handleRequest = function(req, res, next){
@@ -28,7 +37,10 @@ bfydir.prototype.handleRequest = function(req, res, next){
   var parsedUrl = url.parse(req.url)
   var filePath = path.resolve(path.join(self.dirPath, parsedUrl.pathname))
   var isJs = /\.js$/i.test(filePath)
-  if (!isJs) return self.bundlesMount(req, res)
+  if (!isJs) {
+    if (!next) return self.dirMount(req, res)
+    return next()
+  }
   var bundleName = filePath.replace(/\//g,'_')+'.bfy-bundle.js'
   var bundlePath = path.join(self.bundlesPath, bundleName)
   if (self.bundleWatchers[bundlePath]) {
@@ -37,12 +49,15 @@ bfydir.prototype.handleRequest = function(req, res, next){
     return self.bundlesMount(req, res)
   }
   fs.exists(filePath,function(e){
-    if (!e) return self.bundlesMount(req, res)
-    self.bundleWatchers[bundlePath] = watchify(filePath)
-    self.bundleWatchers[bundlePath].on('update', function(){
-      self.bundle(self.bundleWatchers[bundlePath], bundlePath)
+    if (!e) {
+      if (!next) return self.dirMount(req, res)
+      return next()
+    }
+    var bw = self.bundleWatchers[bundlePath] = watchify(filePath)
+    bw.on('update', function(){
+      self.bundle(bw, bundlePath)
     })
-    var b = self.bundle(self.bundleWatchers[bundlePath], bundlePath)
+    var b = self.bundle(bw, bundlePath)
     b.pipe(res)
   })
 }
@@ -54,7 +69,7 @@ bfydir.prototype.bundle = function(bundleWatcher, bundlePath) {
   b.on('error', function (err) { console.error(String(err)) })
   b.pipe(fs.createWriteStream(dotPath))
   var bytes = 0
-  b.pipe(through(write,end))
+  b.pipe(through(write, end))
   function write(buf) { bytes += buf.length }
   function end() {
     fs.rename(dotPath, bundlePath, function(err){
@@ -64,3 +79,4 @@ bfydir.prototype.bundle = function(bundleWatcher, bundlePath) {
   }
   return b
 }
+

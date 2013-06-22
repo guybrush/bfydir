@@ -10,8 +10,7 @@ var dirPath = opti.argv._[0]
 var bundlesPath = opti.argv.b ? opti.argv.b : false
 var port = opti.argv.p ? opti.argv.p : 8004
 var bfydir = require('../')({dirPath:dirPath})
-var server = http.createServer(bfydir.handleRequest.bind(bfydir))
-server.listen(port,function(){
+bfydir.listen(port,function(){
   console.log(pkg.name+'@'+pkg.version)
   console.log( { port: port
                , dirPath: bfydir.dirPath
@@ -19,3 +18,4 @@ server.listen(port,function(){
                , usage: 'bfydir [path/to/dir] [-p 8004] [-b path/to/bundles/dir]'
                } )
 })
+// require('http').createServer(bfydir.handleRequest.bind(bfydir)).listen(port)

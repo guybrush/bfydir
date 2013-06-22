@@ -5,17 +5,21 @@
   "main": "index.js",
   "bin": "bin/bfydir.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/run.js"
   },
   "repository": "",
   "author": "Patrick Pfeiffer <patrick@buzzle.at>",
   "license": "MIT",
   "dependencies": {
     "watchify": "0.0.1",
-    "st": "~0.1.4",
-    "qs": "~0.6.5",
-    "mkdirp": "~0.3.5",
+    "st": "~0.2.1",
+    "qs": "0.6.5",
+    "mkdirp": "0.3.5",
     "through": "~2.3.4",
-    "optimist": "~0.5.2"
+    "optimist": "0.5.2"
+  },
+  "devDependencies": {
+    "destroyer": "0.0.0",
+    "request": "2.21.0"
   }
 }
