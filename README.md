@@ -1,4 +1,4 @@
-# bfydir
+# bfydir (work in progress)
 
 http-server which [watchify](https://github.com/substack/watchify)'s
 all the `*.js` in a dir uppon request.
