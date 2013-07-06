@@ -2,7 +2,7 @@
   "name": "bfydir",
   "version": "0.0.3",
   "description": "http-server to browserify *.js in a dir",
-  "main": "index.js",
+  "main": "bfydir.js",
   "bin": "bin/bfydir.js",
   "scripts": {
     "test": "node test/run.js"
@@ -11,13 +11,13 @@
   "author": "Patrick Pfeiffer <patrick@buzzle.at>",
   "license": "MIT",
   "dependencies": {
-    "watchify": "0.0.1",
+    "watchify": "~0.1",
     "st": "~0.2.1",
     "mkdirp": "0.3.5",
     "through": "~2.3.4",
     "optimist": "0.5.2"
   },
   "devDependencies": {
-    "request": "2.21.0"
+    "request": "~2.21"
   }
 }
