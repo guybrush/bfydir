@@ -20,8 +20,9 @@ function bfydir(opts) {
   self.bundlesPath = opts.bundles
                      || path.join(self.dirPath, '.bfydir-bundles')
   mkdirp.sync(self.bundlesPath)
-  self.dirMount = st({path:self.dirPath, url:'/', dot:true, cache:false})
-  self.bundlesMount = st({path:self.bundlesPath, url:'/', dot:true, cache:false})
+  var url_ = opts.url || 'bfydir/'
+  self.dirMount = st({path:self.dirPath, url:url_, dot:true, cache:false})
+  self.bundlesMount = st({path:self.bundlesPath, dot:true, cache:false})
 
   return this
 }
@@ -39,6 +40,7 @@ function fakeIndex(path) {
 bfydir.prototype.handleRequest = function(req, res, next){
   var self = this
   var parsedUrl = url.parse(req.url,true)
+  var parsedOriginalUrl = url.parse(req.originalUrl,true)
   var filePath = path.resolve(path.join(self.dirPath, parsedUrl.pathname))
   var isJs = /\.js$/i.test(filePath)
   if (parsedUrl.query.entry !== undefined) {
@@ -46,7 +48,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
       if (!next) return self.dirMount(req, res)
       return next()
     }
-    var fakePath = url.resolve( parsedUrl.pathname
+    var fakePath = url.resolve( parsedOriginalUrl.pathname
                               , parsedUrl.query.entry )
     return res.end(fakeIndex(fakePath))
   }
