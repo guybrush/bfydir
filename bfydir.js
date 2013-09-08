@@ -10,6 +10,10 @@ var st = require('st')
 var mkdirp = require('mkdirp')
 var through = require('through')
 
+function fakeIndex(path) {
+  return '<html><body><script src="'+path+'"></script></body></html>'
+}
+
 function bfydir(opts) {
   if (!(this instanceof bfydir)) return new bfydir(opts)
   opts = opts || {}
@@ -20,7 +24,7 @@ function bfydir(opts) {
   self.bundlesPath = opts.bundles
                      || path.join(self.dirPath, '.bfydir-bundles')
   mkdirp.sync(self.bundlesPath)
-  var url_ = opts.url || 'bfydir/'
+  var url_ = opts.url || '/'
   self.dirMount = st({path:self.dirPath, url:url_, dot:true, cache:false})
   self.bundlesMount = st({path:self.bundlesPath, dot:true, cache:false})
 
@@ -33,14 +37,10 @@ bfydir.prototype.listen = function() {
   return this.server
 }
 
-function fakeIndex(path) {
-  return '<html><body><script src="'+path+'"></script></body></html>'
-}
-
 bfydir.prototype.handleRequest = function(req, res, next){
   var self = this
   var parsedUrl = url.parse(req.url,true)
-  var parsedOriginalUrl = url.parse(req.originalUrl,true)
+  // var parsedOriginalUrl = url.parse(req.originalUrl,true)
   var filePath = path.resolve(path.join(self.dirPath, parsedUrl.pathname))
   var isJs = /\.js$/i.test(filePath)
   if (parsedUrl.query.entry !== undefined) {
@@ -48,7 +48,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
       if (!next) return self.dirMount(req, res)
       return next()
     }
-    var fakePath = url.resolve( parsedOriginalUrl.pathname
+    var fakePath = url.resolve( parsedUrl.pathname
                               , parsedUrl.query.entry )
     return res.end(fakeIndex(fakePath))
   }
