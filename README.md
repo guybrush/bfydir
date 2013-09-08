@@ -18,4 +18,6 @@ all the `*.js` in a dir uppon request.
 
     $ curl http://localhost:8005/c.js?entry
     $ # <html><body><script src="c.js"></script></body></html>
+    
+    $ curl http://localhost:8005/a.js?raw          # module.exports = 'a'
 

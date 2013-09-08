@@ -42,7 +42,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
   var parsedUrl = url.parse(req.url,true)
   // var parsedOriginalUrl = url.parse(req.originalUrl,true)
   var filePath = path.resolve(path.join(self.dirPath, parsedUrl.pathname))
-  var isJs = /\.js$/i.test(filePath)
+  var isJs = /\.js$/i.test(filePath) && parsedUrl.query.raw === undefined
   if (parsedUrl.query.entry !== undefined) {
     if (parsedUrl.query.entry == '' && !isJs) {
       if (!next) return self.dirMount(req, res)
