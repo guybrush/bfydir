@@ -4,7 +4,8 @@ http-server which [watchify](https://github.com/substack/watchify)'s
 all the `*.js` in a dir uppon request.
 
     $ npm i -g bfydir
-    $ bfydir ~ -p 8005
+    $ bfydir ~ -p 8006 --https # spawn https server
+    $ bfydir ~ -p 8005         # spawn http server
 
     $ echo "module.exports = 'a'" > ~/a.js
     $ echo "module.exports = 'b'" > ~/b.js
@@ -17,7 +18,10 @@ all the `*.js` in a dir uppon request.
     $ # <html><body><script src="a.js"></script></body></html>
 
     $ curl http://localhost:8005/c.js?entry
-    $ # <html><body><script src="c.js"></script></body></html>
+    $ # <html><body><script>/* bundled source */</script></body></html>
+    
+    $ curl http://localhost:8005/c.js?entry,min
+    $ # <html><body><script>/* bundled source minified */</script></body></html>
     
     $ curl http://localhost:8005/a.js?raw          # module.exports = 'a'
 
