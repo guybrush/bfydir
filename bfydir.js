@@ -58,10 +58,9 @@ bfydir.prototype.handleRequest = function(req, res, next){
     return next()
   }
 
-  var e = entry !== undefined
-  var p = min ? bundlePathMin : bundlePath
-
-  if (self.bundleWatchers[p]) {
+  if (self.bundleWatchers[bundlePath]) {
+    var e = entry !== undefined
+    var p = min ? bundlePathMin : bundlePath
     var b = this.bundling[p]
     var split = p.split('/')
     req.url = '/'+split[split.length-1]
@@ -94,6 +93,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
       var t = through(write, end)
       b.on('error', function(e){
         self.bundling[bundlePath] = false
+        self.bundling[bundlePathMin] = false
         // close the stream so watchify manges listeners
         b.destroy()
         // not sure about emitting errors, if the user doesnt handle the
@@ -122,6 +122,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
       function writeMin(c) {buff += c}
       function endMin() {
         self.emit('minifying', { entry: filePath, path: bundlePathMin } )
+        self.bundling[bundlePathMin] = this
         var ast = esp.parse(buff)
         var res = esm.mangle(ast)
         var code = esc.generate(res, {format:{compact:true}})
