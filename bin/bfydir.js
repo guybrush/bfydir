@@ -8,7 +8,7 @@ var https = require('https')
 var fs = require('fs')
 var dir = opti.argv._[0]
           ? path.resolve(process.cwd(), opti.argv._[0])
-          : false
+          : process.cwd()
 var bundles = opti.argv.b || opti.argv.bundles || false
 var port    = opti.argv.p || opti.argv.port || 8001
 var debug   = opti.argv.d || opti.argv.debug || false
