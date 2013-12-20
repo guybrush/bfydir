@@ -54,6 +54,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
   var bundleName = entryPath.replace(/\//g,'_')+'.bfydir-bundle.js'
   var bundleNameMin = entryPath.replace(/\//g,'_')+'.bfydir-bundle.min.js'
 
+  opts.debug = !min
   opts.pathname = parsedUrl.pathname 
   opts.entryPath = entryPath
   opts.bundlePath = path.join(self.bundlesPath, bundleName)
