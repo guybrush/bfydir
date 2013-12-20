@@ -31,122 +31,156 @@ function bfydir(opts) {
   self.dirMount = st({path:self.dirPath, url:url_, dot:true, cache:false})
   self.bundlesMount = st({path:self.bundlesPath, dot:true, cache:false})
   self.bundling = {}
+  self.minifying = {}
+  self.minified = {}
   return this
 }
-util.inherits(bfydir,EE)
+util.inherits(bfydir, EE)
 
 bfydir.prototype.listen = function() {
   this.server = http.createServer(this.handleRequest.bind(this))
-  this.server.listen.apply(this.server,arguments)
+  this.server.listen.apply(this.server, arguments)
   return this.server
 }
 
 bfydir.prototype.handleRequest = function(req, res, next){
   var self = this
+  var opts = {}
   var parsedUrl = url.parse(req.url, true)
-  var entry = parsedUrl.query.entry
   var min = parsedUrl.query.min !== undefined ? true : false
-  var filePath = path.resolve(path.join(self.dirPath, parsedUrl.pathname))
-  var isJs = /\.js$/i.test(filePath) && parsedUrl.query.raw === undefined
-  var bundleName = filePath.replace(/\//g,'_')+'.bfydir-bundle.js'
-  var bundleNameMin = filePath.replace(/\//g,'_')+'.bfydir-bundle.min.js'
-  var bundlePath = path.join(self.bundlesPath, bundleName)
-  var bundlePathMin = path.join(self.bundlesPath, bundleNameMin)
+  var entry = parsedUrl.query.entry
+  var entryPath = path.resolve(path.join(self.dirPath, parsedUrl.pathname))
+  var isJs = /\.js$/i.test(entryPath) && parsedUrl.query.raw === undefined
+  var bundleName = entryPath.replace(/\//g,'_')+'.bfydir-bundle.js'
+  var bundleNameMin = entryPath.replace(/\//g,'_')+'.bfydir-bundle.min.js'
+
+  opts.pathname = parsedUrl.pathname 
+  opts.entryPath = entryPath
+  opts.bundlePath = path.join(self.bundlesPath, bundleName)
+  opts.bundlePathMin = path.join(self.bundlesPath, bundleNameMin)
 
   if (!isJs) {
     if (!next) return self.dirMount(req, res)
     return next()
   }
 
-  if (self.bundleWatchers[bundlePath]) {
-    var e = entry !== undefined
-    var p = min ? bundlePathMin : bundlePath
-    var b = this.bundling[p]
-    var split = p.split('/')
-    req.url = '/'+split[split.length-1]
-    if (b) {
-      if (e) return b.pipe(inlineEntryStream()).pipe(res)
-      return self.bundlesMount(req, res, next)
+  var e = entry !== undefined
+
+  if (self.bundleWatchers[opts.bundlePath]) {
+    var bp = opts.bundlePath
+    var ing = min ? this.minifying[bp] : this.bundling[bp]
+
+    if (min && !ing && !this.minified[bp]) {
+      if (this.bundling[bp])
+        return self.once('bundled:'+bp, function(){
+          fs.createReadStream(bp).pipe(this.minifyStream(opts)).pipe(res)
+        })
+      var s = fs.createReadStream(bp).pipe(this.minifyStream(opts))
+      if (e) return s.pipe(inlineEntryStream()).pipe(res)
+      return s.pipe(res)
     }
-    if (e) return inlineEntryStream(p).pipe(res)
-    return self.bundlesMount(req, res, next)
+
+    if (ing) {
+      var ev = min ? 'minified:'+bp : 'bundled:'+bp
+      return self.once(ev, function(){serve()})
+    }
+    return serve()
   }
 
-  fs.exists(filePath,function(e){
+  function serve() {
+    var p = min ? opts.bundlePathMin : opts.bundlePath
+    var split = p.split('/')
+    req.url = '/'+split[split.length-1]
+    if (e) return inlineEntryStream(p).pipe(res)
+    self.bundlesMount(req, res, next)
+  }
+
+  fs.exists(entryPath, function(e){
     if (!e) {
       if (!next) return self.dirMount(req, res)
       return next()
     }
-    var bw = self.bundleWatchers[bundlePath] = watchify(filePath)
-    var opts = {debug:!min}
-    var b = bundle(min)
-    bw.on('update', function(){bundle(false)})
+    var bw = self.bundleWatchers[opts.bundlePath] = watchify(entryPath)
+    var b = self.bundleStream(opts)
+    var _b = min ? b.pipe(self.minifyStream(opts)) : b
+    bw.on('update', function(){ _b = self.bundleStream(opts) })
     if (entry !== undefined)
-      return b.pipe(inlineEntryStream()).pipe(res)
-    b.pipe(res)
-
-    function bundle(min) {
-      self.emit('bundling',{entry:filePath, path:bundlePath})
-      var bytes = 0
-      var b = self.bundling[bundlePath] = bw.bundle(opts)
-      var f = fs.createWriteStream(bundlePath)
-      var t = through(write, end)
-      b.on('error', function(e){
-        self.bundling[bundlePath] = false
-        self.bundling[bundlePathMin] = false
-        // close the stream so watchify manges listeners
-        b.destroy()
-        // not sure about emitting errors, if the user doesnt handle the
-        // errors it will throw.. so maybe just put em on stdout
-        // self.emit('error',e)
-        console.log({error:{message:String(e),entry:filePath,path:bundlePath}})
-      })
-      b.pipe(t)
-      b.pipe(f)
-
-      if (!min) return b
-      var buff = ''
-      var tMin = through(writeMin, endMin)
-      var fMin = fs.createWriteStream(bundlePathMin)
-
-      self.bundling[bundlePathMin] = tMin
-      var s = b.pipe(tMin).pipe(fMin)
-      return tMin
-
-      function write(c) {bytes += c.length}
-      function end() {
-        self.bundling[bundlePath] = false
-        self.emit('bundled',{entry:filePath, path:bundlePath, size:kB(bytes)})
-      }
-
-      function writeMin(c) {buff += c}
-      function endMin() {
-        self.emit('minifying', { entry: filePath, path: bundlePathMin } )
-        self.bundling[bundlePathMin] = this
-        var ast = esp.parse(buff)
-        var res = esm.mangle(ast)
-        var code = esc.generate(res, {format:{compact:true}})
-        this.queue(code)
-        this.queue(null)
-        self.bundling[bundlePathMin] = false
-        self.emit( 'minified', { entry: filePath
-                               , path: bundlePathMin
-                               , size: kB(code.length) } )
-      }
-
-    }
+      return _b.pipe(inlineEntryStream()).pipe(res)
+    _b.pipe(res)
   })
+}
+
+bfydir.prototype.bundleStream = function(opts) {
+  var self = this
+  var info = { pathname: opts.pathname, entry: opts.entryPath, bundle: opts.bundlePath }
+  self.minified[opts.bundlePath] = false
+  self.emit('bundling', info)
+  var bw = self.bundleWatchers[opts.bundlePath]
+  var b = self.bundling[opts.bundlePath] = bw.bundle({debug:opts.debug})
+  var f = fs.createWriteStream(opts.bundlePath)
+  var t = through(write, end)
+  var first = false
+  var len = 0
+  b.on('error', onError)
+  b.pipe(f)
+  b.pipe(t)
+  return t
+  function onError(e) {
+    self.bundling[opts.bundlePath] = null
+    var err = {message:String(e),entry:opts.entryPath,bundle:opts.bundlePath}
+    console.error({error:err})
+    b.destroy()
+  }
+  function write(c) {
+    len += c.length
+    this.queue(c)
+  }
+  function end() {
+    this.queue(null)
+    self.bundling[opts.bundlePath] = null
+    info.size = kB(len)
+    self.emit('bundled', info)
+    self.emit('bundled:'+opts.bundlePath)
+  }
+}
+
+bfydir.prototype.minifyStream = function(opts) {
+  var self = this
+  var f = fs.createWriteStream(opts.bundlePathMin)
+  var info = { pathname: opts.pathname, entry: opts.entryPath, bundleMin: opts.bundlePathMin }
+  var t = through(write, end)
+  var buff = ''
+  t.pipe(f)
+  self.minifying[opts.bundlePath] = t
+  self.emit('minifying', info)
+  return t
+  function write(c) {buff += c}
+  function end() {
+    var ast = esp.parse(buff)
+    var res = esm.mangle(ast)
+    code = esc.generate(res, {format:{compact:true}})
+    this.queue(code)
+    this.queue(null)
+    self.minifying[opts.bundlePath] = false
+    self.minified[opts.bundlePath] = true
+    info.size = kB(code.length)
+    self.emit('minified', info)
+    self.emit('minified:'+opts.bundlePath)
+  }
 }
 
 function inlineEntryStream(bundlePath) {
   var s = bundlePath ? fs.createReadStream(bundlePath) : null
-  var i = 0
+  var head = true
   var t = through(write,end)
   if (s) s.pipe(t)
   return t
 
   function write(d){
-    if (!i++) this.queue('<html><body><script>')
+    if (head) {
+      this.queue('<html><body><script>')
+      head = false
+    }
     this.queue(d)
   }
   function end(){
