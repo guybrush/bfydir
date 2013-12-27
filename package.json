@@ -7,11 +7,15 @@
   "scripts": {
     "test": "node test/run.js"
   },
-  "repository": "",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/guybrush/bfydir"
+  },
+  "keywords": ["browserify"],
   "author": "Patrick Pfeiffer <patrick@buzzle.at>",
   "license": "MIT",
   "dependencies": {
-    "watchify": "~0.1",
+    "watchify": "~0.5.0",
     "st": "~0.2.3",
     "mkdirp": "~0.3.5",
     "through": "~2.3.4",

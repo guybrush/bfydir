@@ -19,23 +19,26 @@ fs.writeFileSync(pathModuleA,srcModuleA)
 fs.writeFileSync(pathModuleB,srcModuleB)
 
 var bfyserver = bfydir.listen(port,function(){
-  var uri = 'http://localhost:'+port+'/entry.js'
+  var name = '/entry.js'
+  var uri = 'http://localhost:'+port+name
   request(uri, function(err,res,body){
     var c = { done: function(a, b){
       assert.equal(a,1)
       assert.equal(b,2)
-      fs.writeFile(pathModuleA,'module.exports = 3;',function(err){
-        if (err) throw err
-        setTimeout(function(){
-          request(uri, function(err,res,body){
-            var c2 = { done: function(a, b){
-              assert.equal(a,3)
-              exit()
-            } }
-            vm.runInNewContext(body, c2)
-          })
-        },500)
-      })
+      setTimeout(function(){
+        fs.writeFile(pathModuleA,'module.exports = 3;',function(err){
+          if (err) throw err
+          setTimeout(function(){
+            request(uri, function(err,res,body){
+              var c2 = { done: function(a, b){
+                assert.equal(a,3)
+                exit()
+              } }
+              vm.runInNewContext(body, c2)
+            })
+          },500)
+        })
+      },1000)
     } }
     vm.runInNewContext(body, c)
   })

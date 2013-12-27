@@ -55,7 +55,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
   var bundleNameMin = entryPath.replace(/\//g,'_')+'.bfydir-bundle.min.js'
 
   opts.debug = !min
-  opts.pathname = parsedUrl.pathname 
+  opts.pathname = parsedUrl.pathname
   opts.entryPath = entryPath
   opts.bundlePath = path.join(self.bundlesPath, bundleName)
   opts.bundlePathMin = path.join(self.bundlesPath, bundleNameMin)
@@ -68,7 +68,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
   var e = entry !== undefined
 
   if (self.bundleWatchers[opts.bundlePath]) {
-    var bp = opts.bundlePath
+    var bp = opts.pathname
     var ing = min ? this.minifying[bp] : this.bundling[bp]
 
     if (min && !ing && !this.minified[bp]) {
@@ -116,6 +116,7 @@ bfydir.prototype.bundleStream = function(opts) {
   var info = { pathname: opts.pathname, entry: opts.entryPath, bundle: opts.bundlePath }
   self.minified[opts.bundlePath] = false
   self.emit('bundling', info)
+  self.emit('bundling:'+opts.pathname, info)
   var bw = self.bundleWatchers[opts.bundlePath]
   var b = self.bundling[opts.bundlePath] = bw.bundle({debug:opts.debug})
   var f = fs.createWriteStream(opts.bundlePath)
@@ -141,7 +142,7 @@ bfydir.prototype.bundleStream = function(opts) {
     self.bundling[opts.bundlePath] = null
     info.size = kB(len)
     self.emit('bundled', info)
-    self.emit('bundled:'+opts.bundlePath)
+    self.emit('bundled:'+opts.pathname, info)
   }
 }
 
@@ -154,6 +155,7 @@ bfydir.prototype.minifyStream = function(opts) {
   t.pipe(f)
   self.minifying[opts.bundlePath] = t
   self.emit('minifying', info)
+  self.emit('minifying:'+opts.pathname, info)
   return t
   function write(c) {buff += c}
   function end() {
@@ -166,7 +168,7 @@ bfydir.prototype.minifyStream = function(opts) {
     self.minified[opts.bundlePath] = true
     info.size = kB(code.length)
     self.emit('minified', info)
-    self.emit('minified:'+opts.bundlePath)
+    self.emit('minified:'+opts.pathname, info)
   }
 }
 
@@ -179,7 +181,9 @@ function inlineEntryStream(bundlePath) {
 
   function write(d){
     if (head) {
-      this.queue('<html><body><script>')
+      this.queue('<html><head>'
+        +'<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />'
+        +'<meta charset=utf-8></head><body><script>')
       head = false
     }
     this.queue(d)
