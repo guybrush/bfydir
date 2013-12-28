@@ -70,13 +70,12 @@ bfydir.prototype.handleRequest = function(req, res, next){
   if (self.bundleWatchers[opts.bundlePath]) {
     var bp = opts.pathname
     var ing = min ? this.minifying[bp] : this.bundling[bp]
-
     if (min && !ing && !this.minified[bp]) {
       if (this.bundling[bp])
         return self.once('bundled:'+bp, function(){
-          fs.createReadStream(bp).pipe(this.minifyStream(opts)).pipe(res)
+          fs.createReadStream(entryPath).pipe(this.minifyStream(opts)).pipe(res)
         })
-      var s = fs.createReadStream(bp).pipe(this.minifyStream(opts))
+      var s = fs.createReadStream(entryPath).pipe(this.minifyStream(opts))
       if (e) return s.pipe(inlineEntryStream()).pipe(res)
       return s.pipe(res)
     }
@@ -156,6 +155,7 @@ bfydir.prototype.minifyStream = function(opts) {
   self.minifying[opts.bundlePath] = t
   self.emit('minifying', info)
   self.emit('minifying:'+opts.pathname, info)
+  f.on('error',function(e){console.log('err',e)})
   return t
   function write(c) {buff += c}
   function end() {
@@ -176,7 +176,10 @@ function inlineEntryStream(bundlePath) {
   var s = bundlePath ? fs.createReadStream(bundlePath) : null
   var head = true
   var t = through(write,end)
-  if (s) s.pipe(t)
+  if (s) {
+    s.pipe(t)
+    s.on('error',function(e){console.log('err',e)})
+  }
   return t
 
   function write(d){
