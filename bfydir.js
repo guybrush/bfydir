@@ -67,21 +67,22 @@ bfydir.prototype.handleRequest = function(req, res, next){
 
   var e = entry !== undefined
 
-  if (self.bundleWatchers[opts.bundlePath]) {
-    var bp = opts.pathname
-    var ing = min ? this.minifying[bp] : this.bundling[bp]
-    if (min && !ing && !this.minified[bp]) {
-      if (this.bundling[bp])
-        return self.once('bundled:'+bp, function(){
-          fs.createReadStream(entryPath).pipe(this.minifyStream(opts)).pipe(res)
+  if (self.bundleWatchers[opts.pathname]) {
+    var n = opts.pathname
+    var bp = opts.bundlePath
+    var ing = min ? this.minifying[n] : this.bundling[n]
+    if (min && !ing && !this.minified[n]) {
+      if (this.bundling[n])
+        return self.once('bundled:'+n, function(){
+          fs.createReadStream(bp).pipe(this.minifyStream(opts)).pipe(res)
         })
-      var s = fs.createReadStream(entryPath).pipe(this.minifyStream(opts))
+      var s = fs.createReadStream(bp).pipe(this.minifyStream(opts))
       if (e) return s.pipe(inlineEntryStream()).pipe(res)
       return s.pipe(res)
     }
 
     if (ing) {
-      var ev = min ? 'minified:'+bp : 'bundled:'+bp
+      var ev = min ? 'minified:'+n : 'bundled:'+n
       return self.once(ev, function(){serve()})
     }
     return serve()
@@ -100,7 +101,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
       if (!next) return self.dirMount(req, res)
       return next()
     }
-    var bw = self.bundleWatchers[opts.bundlePath] = watchify(entryPath)
+    var bw = self.bundleWatchers[opts.pathname] = watchify(entryPath)
     var b = self.bundleStream(opts)
     var _b = min ? b.pipe(self.minifyStream(opts)) : b
     bw.on('update', function(){ _b = self.bundleStream(opts) })
@@ -113,11 +114,11 @@ bfydir.prototype.handleRequest = function(req, res, next){
 bfydir.prototype.bundleStream = function(opts) {
   var self = this
   var info = { pathname: opts.pathname, entry: opts.entryPath, bundle: opts.bundlePath }
-  self.minified[opts.bundlePath] = false
+  self.minified[opts.pathname] = false
   self.emit('bundling', info)
   self.emit('bundling:'+opts.pathname, info)
-  var bw = self.bundleWatchers[opts.bundlePath]
-  var b = self.bundling[opts.bundlePath] = bw.bundle({debug:opts.debug})
+  var bw = self.bundleWatchers[opts.pathname]
+  var b = self.bundling[opts.pathname] = bw.bundle({debug:opts.debug})
   var f = fs.createWriteStream(opts.bundlePath)
   var t = through(write, end)
   var first = false
@@ -127,7 +128,7 @@ bfydir.prototype.bundleStream = function(opts) {
   b.pipe(t)
   return t
   function onError(e) {
-    self.bundling[opts.bundlePath] = null
+    self.bundling[opts.pathname] = null
     var err = {message:String(e),entry:opts.entryPath,bundle:opts.bundlePath}
     console.error({error:err})
     b.destroy()
@@ -138,7 +139,7 @@ bfydir.prototype.bundleStream = function(opts) {
   }
   function end() {
     this.queue(null)
-    self.bundling[opts.bundlePath] = null
+    self.bundling[opts.pathname] = null
     info.size = kB(len)
     self.emit('bundled', info)
     self.emit('bundled:'+opts.pathname, info)
@@ -152,10 +153,9 @@ bfydir.prototype.minifyStream = function(opts) {
   var t = through(write, end)
   var buff = ''
   t.pipe(f)
-  self.minifying[opts.bundlePath] = t
+  self.minifying[opts.pathname] = t
   self.emit('minifying', info)
   self.emit('minifying:'+opts.pathname, info)
-  f.on('error',function(e){console.log('err',e)})
   return t
   function write(c) {buff += c}
   function end() {
@@ -164,8 +164,8 @@ bfydir.prototype.minifyStream = function(opts) {
     code = esc.generate(res, {format:{compact:true}})
     this.queue(code)
     this.queue(null)
-    self.minifying[opts.bundlePath] = false
-    self.minified[opts.bundlePath] = true
+    self.minifying[opts.pathname] = false
+    self.minified[opts.pathname] = true
     info.size = kB(code.length)
     self.emit('minified', info)
     self.emit('minified:'+opts.pathname, info)
@@ -176,10 +176,7 @@ function inlineEntryStream(bundlePath) {
   var s = bundlePath ? fs.createReadStream(bundlePath) : null
   var head = true
   var t = through(write,end)
-  if (s) {
-    s.pipe(t)
-    s.on('error',function(e){console.log('err',e)})
-  }
+  if (s) s.pipe(t)
   return t
 
   function write(d){

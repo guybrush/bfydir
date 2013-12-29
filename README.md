@@ -28,9 +28,6 @@ bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug] [--https
     $ echo "module.exports = 'foo'" > ~/a.js
     $ node -e `curl http://localhost:8005/c.js`    # foo b
 
-    $ curl http://localhost:8005?entry=a.js
-    $ # <html><body><script src="a.js"></script></body></html>
-
     $ curl http://localhost:8005/c.js?entry
     $ # <html><body><script>/* bundled source */</script></body></html>
 
