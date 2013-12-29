@@ -1,6 +1,6 @@
 {
   "name": "bfydir",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "http-server to browserify *.js in a dir",
   "main": "bfydir.js",
   "bin": "bin/bfydir.js",
@@ -11,7 +11,9 @@
     "type": "git",
     "url": "git://github.com/guybrush/bfydir"
   },
-  "keywords": ["browserify"],
+  "keywords": [
+    "browserify"
+  ],
   "author": "Patrick Pfeiffer <patrick@buzzle.at>",
   "license": "MIT",
   "dependencies": {
