@@ -17,7 +17,7 @@
   "author": "Patrick Pfeiffer <patrick@buzzle.at>",
   "license": "MIT",
   "dependencies": {
-    "watchify": "~0.5.0",
+    "watchify": "^0.6.1",
     "st": "~0.2.3",
     "mkdirp": "~0.3.5",
     "through": "~2.3.4",
