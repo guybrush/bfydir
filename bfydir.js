@@ -131,6 +131,7 @@ bfydir.prototype.bundleStream = function(opts) {
     self.bundling[opts.pathname] = null
     var err = {message:String(e),entry:opts.entryPath,bundle:opts.bundlePath}
     console.error({error:err})
+    b.end()
     b.destroy()
   }
   function write(c) {
