@@ -1,6 +1,6 @@
 {
   "name": "bfydir",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "http-server to browserify *.js in a dir",
   "main": "bfydir.js",
   "bin": "bin/bfydir.js",
