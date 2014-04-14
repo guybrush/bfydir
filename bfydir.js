@@ -73,7 +73,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
     var bp = opts.bundlePath
     var ing = doMin ? this.minifying[up] : this.bundling[up]
     if (doMin && !ing && !this.minified[up]) {
-      if (this.bundling[n])
+      if (this.bundling[up])
         return self.once('bundled:'+up, function(){
           fs.createReadStream(bp).pipe(this.minifyStream(opts)).pipe(res)
         })
@@ -83,7 +83,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
     }
 
     if (ing) {
-      var ev = doMin ? 'minified:'+n : 'bundled:'+n
+      var ev = doMin ? 'minified:'+up : 'bundled:'+up
       return self.once(ev, function(){serve()})
     }
     return serve()
