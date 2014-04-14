@@ -68,14 +68,16 @@ bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug] [--https
 
 all the events emit with a info-object:
 
-`bfydir.on('bundled', function(info){
+```
+bfydir.on('bundled', function(info){
   // info.urlPath
   // info.entryPath
   // info.bundlePath
   // info.bundlePathMin (only when minifying)
   // info.bundleSize
   // info.bundleSizeMin
-})`
+})
+```
 
 
 ### `var server = bfydir.createServer()`
