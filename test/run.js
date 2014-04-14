@@ -20,7 +20,7 @@ fs.writeFileSync(pathModuleB, srcModuleB)
 
 var bfyserver = bfydir.listen(port,function(){
   var name = '/entry.js'
-  var uri = 'http://localhost:'+port+name
+  var uri = 'http://localhost:'+port+name+'?bundle'
   bfydir.once('bundled:'+name, function(d){
     assert.equal(d.pathname, name)
     assert.equal(d.entry, pathEntry)

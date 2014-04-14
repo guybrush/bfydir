@@ -1,7 +1,36 @@
-# bfydir (work in progress)
+# bfydir
 
-http-server which [watchify](https://github.com/substack/watchify)'s
-all the `*.js` in a dir uppon request.
+a http-server which [watchify](https://github.com/substack/watchify)'s
+all the files in a dir simultaneously uppon request. also it supports
+minifying js-files and inlining it into html-tags:
+`<html><body><script>/* inline content here */</script></body></html>`.
+
+## example
+
+```
+$ npm i -g bfydir
+$ bfydir ~ -p 8006 --https # spawn https server
+$ bfydir ~ -p 8005         # spawn http server
+
+$ echo "module.exports = 'a'" > ~/a.js
+$ echo "module.exports = 'b'" > ~/b.js
+$ echo "console.log(require('./a'), require('./b'))" > ~/c.js
+$ node -e `curl http://localhost:8005/c.js?bundle`
+a b
+
+$ echo "module.exports = 'foo'" > ~/a.js
+$ node -e `curl http://localhost:8005/c.js?bundle`
+foo b
+
+$ curl http://localhost:8005/c.js?bundle&inline
+<html><body><script>/* bundled source */</script></body></html>
+
+$ curl http://localhost:8005/c.js?bundle&inline&min
+<html><body><script>/* bundled source minified */</script></body></html>
+
+$ curl http://localhost:8005/a.js
+module.exports = 'a'
+```
 
 ## cli
 
@@ -10,29 +39,86 @@ bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug] [--https
 
     <dir>     .. serve files from that directory (default: pwd)
     <port>    .. listen on that port (default: 8001)
-    <bundles> .. write bundled files into that directory (default: pwd)
+    <bundles> .. write bundled files into that directory (default: pwd/.bfydir-bundles)
     debug     .. write infos about bundling/minifying to stdout
     https     .. if set, start https-server
 ```
+## api
 
-## example
+### `var bfydir = require('bfydir')([opts])`
 
-    $ npm i -g bfydir
-    $ bfydir ~ -p 8006 --https # spawn https server
-    $ bfydir ~ -p 8005         # spawn http server
+`opts` is optional
 
-    $ echo "module.exports = 'a'" > ~/a.js
-    $ echo "module.exports = 'b'" > ~/b.js
-    $ echo "console.log(require('./a'), require('./b'))" > ~/c.js
-    $ node -e `curl http://localhost:8005/c.js`    # a b
-    $ echo "module.exports = 'foo'" > ~/a.js
-    $ node -e `curl http://localhost:8005/c.js`    # foo b
+* `opts.dir` - serve files from that directory (default: `process.cwd()`)
+* `opts.bundles` - write bundled files into that directory
+  (default: `process.cwd()+'/.bfydir-bundles'`)
 
-    $ curl http://localhost:8005/c.js?entry
-    $ # <html><body><script>/* bundled source */</script></body></html>
+`bfydir` is an eventemitter which emits following events:
 
-    $ curl http://localhost:8005/c.js?entry&min
-    $ # <html><body><script>/* bundled source minified */</script></body></html>
+* `bundling`
+* `bundling:<path>`
+* `bundled`
+* `bundled:<path>`
+* `minifying`
+* `minifying:<path>`
+* `minified`
+* `minified:<path>`
 
-    $ curl http://localhost:8005/a.js?raw          # module.exports = 'a'
+### `var server = bfydir.createServer()`
+
+`server` is a http-server, its a shortcut for `http.createServer(this.requestHandler())`
+
+### `bfydir.requestHandler()`
+
+this is a shortcut for `this.handleRequest.bind(this)`
+
+### `bfydir.handleRequest(req, res[, next])`
+
+this will look for `require('url').parse(req.url).{min,bundle,inline}`
+
+* `bundle` - if set pipe a browserify-bundle-stream into `res` (or if the
+  bundle exists on disk pipe it directly from disk)
+* `inline` - if set pipe the content through `bfydir.inlineStream()`
+* `min` - if set pipe the content through `bfydir.minifyStream()`
+
+### `var bStream = bfydir.bundleStream(opts)`
+
+* `bStream` is a through-stream in which a browserify-bundle-stream gets
+  piped into. the result gets piped to disk.
+* `opts` must be an object
+  * `opts.pathname`
+  * `opts.bundlePath`
+  * `opts.entryPath`
+
+### `var mStream = bfydir.minifyStream(opts)`
+
+* `mStream` is a through-stream which buffers all content and then minifys it.
+  then it writes the result to disk.
+* `opts` must be an object
+  * `opts.pathname`
+  * `opts.bundlePath`
+  * `opts.entryPath`
+
+### `var iStream = require('bfydir').inlineStream(sourcePath)`
+
+* `sourcePath` must be a the path to a file on the disk
+* `iStream` is a through-stream which envelops the content into html-tags:
+
+```
+<html>
+  <head>
+    <meta content="width=device-width,
+                   initial-scale=1.0,
+                   maximum-scale=1.0,
+                   user-scalable=0"
+          name="viewport" />
+    <meta charset=utf-8>
+  </head>
+  <body>
+    <script>
+      /* here is the content */
+    </script>
+  </body>
+</html>
+```
 

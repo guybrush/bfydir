@@ -21,7 +21,6 @@ function bfydir(opts) {
   EE.call(this)
   opts = opts || {}
   var self = this
-  self.server = null
   self.bundleWatchers = {}
   self.dirPath = path.resolve(process.cwd(), opts.dir)
   self.bundlesPath = opts.bundles
@@ -37,10 +36,8 @@ function bfydir(opts) {
 }
 util.inherits(bfydir, EE)
 
-bfydir.prototype.listen = function() {
-  this.server = http.createServer(this.handleRequest.bind(this))
-  this.server.listen.apply(this.server, arguments)
-  return this.server
+bfydir.prototype.createServer = function() {
+  return http.createServer(this.requestHandler())
 }
 
 bfydir.prototype.requestHandler = function() {
@@ -51,52 +48,52 @@ bfydir.prototype.handleRequest = function(req, res, next){
   var self = this
   var opts = {}
   var parsedUrl = url.parse(req.url, true)
-  var min = parsedUrl.query.min !== undefined ? true : false
-  var entry = parsedUrl.query.entry
+  var doMin = parsedUrl.query.min !== undefined ? true : false
+  var doBundle = parsedUrl.query.bundle !== undefined ? true : false
+  var doInline = parsedUrl.query.inline !== undefined ? true : false
   var entryPath = path.resolve(path.join(self.dirPath, parsedUrl.pathname))
-  var isJs = /\.js$/i.test(entryPath) && parsedUrl.query.raw === undefined
   var bundleName = entryPath.replace(/\//g,'_')+'.bfydir-bundle.js'
   var bundleNameMin = entryPath.replace(/\//g,'_')+'.bfydir-bundle.min.js'
 
-  opts.debug = !min
+  opts.debug = !doMin
   opts.pathname = parsedUrl.pathname
   opts.entryPath = entryPath
   opts.bundlePath = path.join(self.bundlesPath, bundleName)
   opts.bundlePathMin = path.join(self.bundlesPath, bundleNameMin)
 
-  if (!isJs) {
+  if (!doBundle && !doInline && !doMin) {
     if (!next) return self.dirMount(req, res)
     return next()
   }
 
-  var e = entry !== undefined
+  if (!doBundle && doInline) {}
 
   if (self.bundleWatchers[opts.pathname]) {
     var n = opts.pathname
     var bp = opts.bundlePath
-    var ing = min ? this.minifying[n] : this.bundling[n]
-    if (min && !ing && !this.minified[n]) {
+    var ing = doMin ? this.minifying[n] : this.bundling[n]
+    if (doMin && !ing && !this.minified[n]) {
       if (this.bundling[n])
         return self.once('bundled:'+n, function(){
           fs.createReadStream(bp).pipe(this.minifyStream(opts)).pipe(res)
         })
       var s = fs.createReadStream(bp).pipe(this.minifyStream(opts))
-      if (e) return s.pipe(inlineEntryStream()).pipe(res)
+      if (doInline) return s.pipe(inlineEntryStream()).pipe(res)
       return s.pipe(res)
     }
 
     if (ing) {
-      var ev = min ? 'minified:'+n : 'bundled:'+n
+      var ev = doMin ? 'minified:'+n : 'bundled:'+n
       return self.once(ev, function(){serve()})
     }
     return serve()
   }
 
   function serve() {
-    var p = min ? opts.bundlePathMin : opts.bundlePath
+    var p = doMin ? opts.bundlePathMin : opts.bundlePath
+    if (doInline) return inlineEntryStream(p).pipe(res)
     var split = p.split('/')
     req.url = '/'+split[split.length-1]
-    if (e) return inlineEntryStream(p).pipe(res)
     self.bundlesMount(req, res, next)
   }
 
@@ -107,10 +104,9 @@ bfydir.prototype.handleRequest = function(req, res, next){
     }
     var bw = self.bundleWatchers[opts.pathname] = watchify(entryPath)
     var b = self.bundleStream(opts)
-    var _b = min ? b.pipe(self.minifyStream(opts)) : b
+    var _b = doMin ? b.pipe(self.minifyStream(opts)) : b
     bw.on('update', function(){ _b = self.bundleStream(opts) })
-    if (entry !== undefined)
-      return _b.pipe(inlineEntryStream()).pipe(res)
+    if (doInline) return _b.pipe(inlineEntryStream()).pipe(res)
     _b.pipe(res)
   })
 }
