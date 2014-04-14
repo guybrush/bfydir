@@ -22,12 +22,12 @@ if (debug) {
 }
 
 if (!opti.argv.https)
-  http.createServer(bfydir.handleRequest.bind(bfydir)).listen(port)
+  http.createServer(bfydir.requestHandler()).listen(port)
 else {
   var opts = {}
   opts.key = fs.readFileSync(__dirname+'/privatekey.pem').toString()
   opts.cert = fs.readFileSync(__dirname+'/certificate.pem').toString()
-  https.createServer(opts,bfydir.handleRequest.bind(bfydir)).listen(port)
+  https.createServer(opts, bfydir.requestHandler()).listen(port)
 }
 
 var usage =

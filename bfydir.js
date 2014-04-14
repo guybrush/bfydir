@@ -43,6 +43,10 @@ bfydir.prototype.listen = function() {
   return this.server
 }
 
+bfydir.prototype.requestHandler = function() {
+  return this.handleRequest.bind(this)
+}
+
 bfydir.prototype.handleRequest = function(req, res, next){
   var self = this
   var opts = {}
@@ -113,7 +117,9 @@ bfydir.prototype.handleRequest = function(req, res, next){
 
 bfydir.prototype.bundleStream = function(opts) {
   var self = this
-  var info = { pathname: opts.pathname, entry: opts.entryPath, bundle: opts.bundlePath }
+  var info = { pathname: opts.pathname
+             , entry: opts.entryPath
+             , bundle: opts.bundlePath }
   self.minified[opts.pathname] = false
   self.emit('bundling', info)
   self.emit('bundling:'+opts.pathname, info)
@@ -129,9 +135,10 @@ bfydir.prototype.bundleStream = function(opts) {
   return t
   function onError(e) {
     self.bundling[opts.pathname] = null
-    var err = {message:String(e),entry:opts.entryPath,bundle:opts.bundlePath}
-    console.error({error:err})
-    b.end()
+    var err = { message: String(e)
+              , entry: opts.entryPath
+              , bundle: opts.bundlePath }
+    console.error({error: err})
     b.destroy()
   }
   function write(c) {
@@ -150,7 +157,9 @@ bfydir.prototype.bundleStream = function(opts) {
 bfydir.prototype.minifyStream = function(opts) {
   var self = this
   var f = fs.createWriteStream(opts.bundlePathMin)
-  var info = { pathname: opts.pathname, entry: opts.entryPath, bundleMin: opts.bundlePathMin }
+  var info = { pathname: opts.pathname
+             , entry: opts.entryPath
+             , bundleMin: opts.bundlePathMin }
   var t = through(write, end)
   var buff = ''
   t.pipe(f)
@@ -183,7 +192,8 @@ function inlineEntryStream(bundlePath) {
   function write(d){
     if (head) {
       this.queue('<html><head>'
-        +'<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />'
+        +'<meta content="width=device-width, initial-scale=1.0, '
+        +'maximum-scale=1.0, user-scalable=0" name="viewport" />'
         +'<meta charset=utf-8></head><body><script>')
       head = false
     }

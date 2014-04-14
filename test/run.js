@@ -14,35 +14,43 @@ var pathEntry = path.join(__dirname,'entry.js')
 var pathModuleA = path.join(__dirname,'moduleA.js')
 var pathModuleB = path.join(__dirname,'moduleB.js')
 
-fs.writeFileSync(pathEntry,srcEntry)
-fs.writeFileSync(pathModuleA,srcModuleA)
-fs.writeFileSync(pathModuleB,srcModuleB)
+fs.writeFileSync(pathEntry, srcEntry)
+fs.writeFileSync(pathModuleA, srcModuleA)
+fs.writeFileSync(pathModuleB, srcModuleB)
 
 var bfyserver = bfydir.listen(port,function(){
   var name = '/entry.js'
   var uri = 'http://localhost:'+port+name
+  bfydir.once('bundled:'+name, function(d){
+    assert.equal(d.pathname, name)
+    assert.equal(d.entry, pathEntry)
+    bfydir.once('bundled:'+name, function(){
+      run(uri, function(a,b){
+        assert.equal(a,3)
+        assert.equal(b,2)
+        exit()
+      })
+    })
+    setTimeout(function(){
+      fs.writeFile(pathModuleA,'module.exports = 3;',function(err){
+        if (err) throw err
+      })
+    },1000)
+  })
+  run(uri, function(a,b){
+    assert.equal(a,1)
+    assert.equal(b,2)
+  })
+})
+
+function run(uri, fn) {
   request(uri, function(err,res,body){
     var c = { done: function(a, b){
-      assert.equal(a,1)
-      assert.equal(b,2)
-      setTimeout(function(){
-        fs.writeFile(pathModuleA,'module.exports = 3;',function(err){
-          if (err) throw err
-          setTimeout(function(){
-            request(uri, function(err,res,body){
-              var c2 = { done: function(a, b){
-                assert.equal(a,3)
-                exit()
-              } }
-              vm.runInNewContext(body, c2)
-            })
-          },500)
-        })
-      },1000)
+      fn(a, b)
     } }
     vm.runInNewContext(body, c)
   })
-})
+}
 
 function exit(err) {
   console.log('all done')
