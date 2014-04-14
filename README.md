@@ -64,6 +64,20 @@ bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug] [--https
 * `minified`
 * `minified:<path>`
 
+`<path>` is the url-pathname of the served bundle
+
+all the events emit with a info-object:
+
+`bfydir.on('bundled', function(info){
+  // info.urlPath
+  // info.entryPath
+  // info.bundlePath
+  // info.bundlePathMin (only when minifying)
+  // info.bundleSize
+  // info.bundleSizeMin
+})`
+
+
 ### `var server = bfydir.createServer()`
 
 `server` is a http-server, its a shortcut for `http.createServer(this.requestHandler())`
@@ -121,4 +135,8 @@ this will look for `require('url').parse(req.url).{min,bundle,inline}`
   </body>
 </html>
 ```
+
+### `bfydir.close()`
+
+close all the watchify-bundle-watchers
 

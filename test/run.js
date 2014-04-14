@@ -18,12 +18,12 @@ fs.writeFileSync(pathEntry, srcEntry)
 fs.writeFileSync(pathModuleA, srcModuleA)
 fs.writeFileSync(pathModuleB, srcModuleB)
 
-var bfyserver = bfydir.listen(port,function(){
+var bfyserver = bfydir.createServer().listen(port,function(){
   var name = '/entry.js'
   var uri = 'http://localhost:'+port+name+'?bundle'
   bfydir.once('bundled:'+name, function(d){
-    assert.equal(d.pathname, name)
-    assert.equal(d.entry, pathEntry)
+    assert.equal(d.urlPath, name)
+    assert.equal(d.entryPath, pathEntry)
     bfydir.once('bundled:'+name, function(){
       run(uri, function(a,b){
         assert.equal(a,3)
@@ -53,8 +53,10 @@ function run(uri, fn) {
 }
 
 function exit(err) {
-  console.log('all done')
   if (err) throw new Error(err)
+  console.log('all done')
+  bfydir.close()
+  bfyserver.close()
   process.exit()
 }
 
