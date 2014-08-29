@@ -16,7 +16,7 @@ var bfydir  = require('../')({dir:dir})
 
 if (debug) {
   bfydir.on('bundling'  , function(d){ console.log({bundling  : d}) })
-  bfydir.on('bundled'   , function(d){ console.log({bundled   : d}) })
+  bfydir.on('bundled'   , function(err,d){console.log(err ? {error:err} : {bundled:d}) })
   bfydir.on('minifying' , function(d){ console.log({minifying : d}) })
   bfydir.on('minified'  , function(d){ console.log({minified  : d}) })
 }
@@ -35,7 +35,7 @@ var usage =
   ,''
   ,'    <dir>     .. serve files from that directory (default: pwd)'
   ,'    <port>    .. listen on that port (default: 8001)'
-  ,'    <bundles> .. write bundled files into that directory (default: pwd)'
+  ,'    <bundles> .. write bundled files into that directory (default: pwd/.bfydir-bundles)'
   ,'    debug     .. write infos about bundling/minifying to stdout'
   ,'    https     .. if set, start https-server'
   ,''

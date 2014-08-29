@@ -79,18 +79,18 @@ bfydir.on('bundled', function(info){
 })
 ```
 
-
 ### `var server = bfydir.createServer()`
 
-`server` is a http-server, its a shortcut for `http.createServer(this.requestHandler())`
+`server` is a http-server, its a shortcut for
+`http.createServer(this.requestHandler())`
 
-### `bfydir.requestHandler()`
+### `var handler = bfydir.requestHandler()`
 
-this is a shortcut for `this.handleRequest.bind(this)`
+this is a shortcut for `var handler = bfydir.handleRequest.bind(bfydir)`
 
 ### `bfydir.handleRequest(req, res[, next])`
 
-this will look for `require('url').parse(req.url).{min,bundle,inline}`
+this will look for `require('url').parse(req.url).{bundle,inline,min}`
 
 * `bundle` - if set pipe a browserify-bundle-stream into `res` (or if the
   bundle exists on disk pipe it directly from disk)
@@ -102,22 +102,24 @@ this will look for `require('url').parse(req.url).{min,bundle,inline}`
 * `bStream` is a through-stream in which a browserify-bundle-stream gets
   piped into. the result gets piped to disk.
 * `opts` must be an object
-  * `opts.pathname`
+  * `opts.urlPath` is used to identify the bundle-watcher
+  * `opts.entryPath` 
   * `opts.bundlePath`
-  * `opts.entryPath`
+  * `opts.bundleOpts`
 
 ### `var mStream = bfydir.minifyStream(opts)`
 
 * `mStream` is a through-stream which buffers all content and then minifys it.
   then it writes the result to disk.
 * `opts` must be an object
-  * `opts.pathname`
-  * `opts.bundlePath`
+  * `opts.urlPath`
+  * `opts.bundlePathMin`
   * `opts.entryPath`
 
-### `var iStream = require('bfydir').inlineStream(sourcePath)`
+### `var iStream = require('bfydir').inlineStream([sourcePath])`
 
-* `sourcePath` must be a the path to a file on the disk
+* if `sourcePath` is set, `fs.createReadStream(bundlePath)` gets piped through
+  the stream
 * `iStream` is a through-stream which envelops the content into html-tags:
 
 ```
