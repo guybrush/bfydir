@@ -3,33 +3,59 @@
 a http-server which [watchify](https://github.com/substack/watchify)'s
 all the files in a dir simultaneously uppon request. also it supports
 minifying js-files and inlining it into html-tags:
-`<html><body><script>/* inline content here */</script></body></html>`.
+`<html><body><script>/* bundled source here */</script></body></html>`.
 
 ## example
 
+install bfydir and start the server:
 ```
 $ npm i -g bfydir
 $ bfydir ~ -p 8006 --https # spawn https server
 $ bfydir ~ -p 8005         # spawn http server
+```
 
+write code:
+```
 $ echo "module.exports = 'a'" > ~/a.js
 $ echo "module.exports = 'b'" > ~/b.js
 $ echo "console.log(require('./a'), require('./b'))" > ~/c.js
+```
+
+create a bundle:
+```
 $ node -e `curl http://localhost:8005/c.js?bundle`
 a b
+```
 
+when you change the code it will update the bundles:
+```
 $ echo "module.exports = 'foo'" > ~/a.js
 $ node -e `curl http://localhost:8005/c.js?bundle`
 foo b
+```
 
-$ curl http://localhost:8005/c.js?bundle&inline
+with the `inline` querystring-parameter it wrap the bundle with html-tags:
+```
+$ curl http://localhost:8005/c.js?inline
 <html><body><script>/* bundled source */</script></body></html>
+```
 
-$ curl http://localhost:8005/c.js?bundle&inline&min
+inline and minify:
+```
+$ curl http://localhost:8005/c.js?inline&min
 <html><body><script>/* bundled source minified */</script></body></html>
+```
 
+use one or multiple transforms:
+```
+$ curl http://localhost:8005/some-file.js?transform=glslify,otherTransform
+< transformed bundle >
+```
+
+without any querystring-parameters it will serve the source without bundling:
+```
 $ curl http://localhost:8005/a.js
-module.exports = 'a'
+module.exports = 'foo'
 ```
 
 ## cli
@@ -39,10 +65,18 @@ bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug] [--https
 
     <dir>     .. serve files from that directory (default: pwd)
     <port>    .. listen on that port (default: 8001)
-    <bundles> .. write bundled files into that directory (default: pwd/.bfydir-bundles)
+    <bundles> .. write bundled files into that directory (default: <dir>/.bfydir-bundles)
     debug     .. write infos about bundling/minifying to stdout
     https     .. if set, start https-server
 ```
+
+## querystring-parameters
+
+* bundle, b
+* min, m
+* inline, i (sets bundle)
+* transform, t (sets bundle)
+
 ## api
 
 ### `var bfydir = require('bfydir')([opts])`
