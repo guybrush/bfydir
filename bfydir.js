@@ -156,7 +156,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
 
   fs.exists(entryPath, function(e){
     if (!e) {
-      if (!next) return self.dirMount(req, res)
+      if (!next) return self.serveDir(req, res)
       return next()
     }
     var b = self.bundleStream(opts)
