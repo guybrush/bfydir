@@ -38,7 +38,8 @@ function bfydir(opts) {
   self.serveBundlesIndex  = serveIndex (self.bundlesPath)
   self.serveBundlesStatic = serveStatic(self.bundlesPath)
   self.serveDirIndex  = serveIndex (self.dirPath)
-  self.serveDirStatic = serveStatic(self.dirPath)
+  self.serveDirStatic = serveStatic(self.dirPath,{index:false})
+  self.compression = compression()
 
   return this
 }
@@ -64,9 +65,12 @@ bfydir.prototype.serveDir = function(req,res){
 bfydir.prototype.serveBundles = function(req,res){
   var self = this
   var done = finalhandler(req,res)
-  self.serveBundlesStatic(req,res,function(err){
+  self.compression(req,res,function(err){
     if (err) return done(err)
-    self.serveBundlesIndex(req,res,done)
+    self.serveBundlesStatic(req,res,function(err){
+      if (err) return done(err)
+      self.serveBundlesIndex(req,res,done)
+    })
   })
 }
 
@@ -110,6 +114,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
   opts.bundleOpts.cache = {}
   opts.bundleOpts.packageCache = {}
   opts.bundleOpts.fullPaths = false
+
   opts.transform = doTransform
 
   if (!doBundle && !doInline && !doMin) {
