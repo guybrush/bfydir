@@ -17,6 +17,7 @@
   "author": "Patrick Pfeiffer <patrick@buzzle.at>",
   "license": "MIT",
   "dependencies": {
+    "basic-auth": "^1",
     "browserify": "^8",
     "bundle-collapser": "^1",
     "compression": "^1.3.0",

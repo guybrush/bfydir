@@ -7,6 +7,7 @@ var fs = require('fs')
 var http = require('http')
 var EE = require('events').EventEmitter
 var util = require('util')
+var auth = require('basic-auth')
 
 var browserify = require('browserify')
 var watchify = require('watchify')
@@ -41,6 +42,16 @@ function bfydir(opts) {
   self.serveDirStatic = serveStatic(self.dirPath,{index:false})
   self.compression = compression()
 
+  if (opts.auth) {
+    self.auth = {}
+    var users = opts.auth.split(',')
+    users.forEach(function(str){
+      var s = str.split(':')
+      if (s.length<2) throw new Error('invalid option: auth')
+      self.auth[s[0]] = s[1]
+    })
+  }
+  
   return this
 }
 util.inherits(bfydir, EE)
@@ -75,6 +86,14 @@ bfydir.prototype.serveBundles = function(req,res){
 }
 
 bfydir.prototype.handleRequest = function(req, res, next){
+  if (this.auth) {
+    var cred = auth(req)
+    if (!cred || !this.auth[cred.name] || cred.pass !== this.auth[cred.name]) {
+      res.writeHead(401, {'WWW-Authenticate': 'Basic realm="hello"'})
+      return res.end()
+    }
+  }
+  
   var self = this
   var opts = {}
   var parsedUrl = url.parse(req.url, true)
@@ -260,6 +279,7 @@ bfydir.prototype.minifyStream = function(opts) {
 
   var t = through(write, end)
   var buff = ''
+  
   self.minifying[opts.urlPath] = t
   self.emit('minifying', info)
   self.emit('minifying:'+opts.urlPath, info)
@@ -270,7 +290,8 @@ bfydir.prototype.minifyStream = function(opts) {
     var len1 = buff.length
     var buff2 = ''
     var f = fs.createWriteStream(opts.bundlePathMin)
-
+    var len2 = 0
+    var result
     var t2 = through(write2,end2)
     var bc = bundleCollapser(buff)
 
@@ -289,10 +310,10 @@ bfydir.prototype.minifyStream = function(opts) {
 
     function write2(d) {buff2+=d}
     function end2() {
-      var len2 = buff2.length
-      var result = uglifyjs.minify
+      len2 = buff2.length
+      result = uglifyjs.minify
         (buff2,{fromString:true
-               // ,output:{ascii_only:true}
+               ,output:{ascii_only:true}
                })
       this.queue(result.code)
       this.queue(null)

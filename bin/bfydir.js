@@ -12,7 +12,8 @@ var dir = opti.argv._[0]
 var bundles = opti.argv.b || opti.argv.bundles || false
 var port    = opti.argv.p || opti.argv.port || 8001
 var debug   = opti.argv.d || opti.argv.debug || false
-var bfydir  = require('../')({dir:dir})
+var auth    = opti.argv.a || opti.argv.auth || false
+var bfydir  = require('../')({dir:dir,auth:auth})
 
 if (debug) {
   bfydir.on('bundling'  , function(d){ console.log({bundling  : d}) })
@@ -31,13 +32,15 @@ else {
 }
 
 var usage =
-  ['bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug] [--https]'
+  ['bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug] \ '
+  ,'       [--https] [-a,--auth <user>:<pwd>[,<user>:<pwd>]]'
   ,''
   ,'    <dir>     .. serve files from that directory (default: pwd)'
   ,'    <port>    .. listen on that port (default: 8001)'
   ,'    <bundles> .. write bundled files into that directory (default: pwd/.bfydir-bundles)'
   ,'    debug     .. write infos about bundling/minifying to stdout'
   ,'    https     .. if set, start https-server'
+  ,'    auth      .. basic-auth'
   ,''
   ].join('\n')
 console.log(usage)
@@ -45,6 +48,7 @@ console.log( { module: pkg.name+'@'+pkg.version
              , port: port
              , debug: debug
              , https: opti.argv.https ? true : false
+             , auth: bfydir.auth
              , dirPath: bfydir.dirPath
              , bundlesPath: bfydir.bundlesPath
              } )
