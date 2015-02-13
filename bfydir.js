@@ -223,11 +223,6 @@ bfydir.prototype.bundleStream = function(opts) {
 
   bundle().pipe(t)
 
-  bw.on('log',function(x){
-    self.emit('bundled', x)
-    self.emit('bundled:'+opts.urlPath, x)
-  })
-
   return t
 
   function bundle() {
