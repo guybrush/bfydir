@@ -35,7 +35,7 @@ var bfyserver = bfydir.createServer().listen(port,function(){
       fs.writeFile(pathModuleA,'module.exports = 3;',function(err){
         if (err) throw err
       })
-    },1000)
+    },500)
   })
   run(uri, function(a,b){
     assert.equal(a,1)

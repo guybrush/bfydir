@@ -5,13 +5,48 @@ all the files in a dir simultaneously uppon request. also it supports
 minifying js-files and inlining it into html-tags:
 `<html><body><script>/* bundled source here */</script></body></html>`.
 
-## example
+## cli
+
+```
+bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug]
+       [--key <key>] [--cert <cert>] [--pfx <pfx>]
+       [-a,--auth <user>:<pwd>[,<user>:<pwd>]]
+       [-h,--help]
+
+    <dir>     .. serve files from that directory (default: pwd)
+    <port>    .. listen on that port (default: 8001)
+    <bundles> .. write bundles into that directory (default: <dir>/.bfydir-bundles)
+    debug     .. write infos about bundling/minifying to stdout
+    <key>     .. path to ssl-key-file
+    <cert>    .. path to cert-key-file
+    <pfx>     .. path to pfx-file
+    auth      .. basic auth (comma separated list of user:pwd
+    help      .. only show this message, otherwise just start bfydir
+
+querystring-parameters:
+
+    bundle, b    .. bundles the requested file instead of serving it
+    min, m       .. minifies the bundle (sets b automatically)
+    inline, i    .. inlines the bundle into html (sets b)
+    transform, t .. comma-separated list of transforms (sets b)
+    ignore       .. comma-separated list of modules to ignore (sets b)
+
+example:
+
+    $ bfydir ~ -p 8080 -a user1:pwd1,user2:pwd2
+    $ echo "module.exports = 'a'" > ~/a.js
+    $ echo "module.exports = 'b'" > ~/b.js
+    $ echo "console.log(require('./a'), require('./b'))" > ~/c.js
+    $ node -e `curl "http://user1:pwd1@localhost:8005/c.js?b"`
+    a b
+```
+
+## usage
 
 install bfydir and start the server:
 ```
 $ npm i -g bfydir
-$ bfydir ~ -p 8006 --https # spawn https server
-$ bfydir ~ -p 8005         # spawn http server
+$ bfydir ~ -p 8005
 ```
 
 write code:
@@ -57,25 +92,6 @@ without any querystring-parameters it will serve the source without bundling:
 $ curl http://localhost:8005/a.js
 module.exports = 'foo'
 ```
-
-## cli
-
-```
-bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug] [--https]
-
-    <dir>     .. serve files from that directory (default: pwd)
-    <port>    .. listen on that port (default: 8001)
-    <bundles> .. write bundled files into that directory (default: <dir>/.bfydir-bundles)
-    debug     .. write infos about bundling/minifying to stdout
-    https     .. if set, start https-server
-```
-
-## querystring-parameters
-
-* bundle, b
-* min, m
-* inline, i (sets bundle)
-* transform, t (sets bundle)
 
 ## api
 
@@ -124,12 +140,15 @@ this is a shortcut for `var handler = bfydir.handleRequest.bind(bfydir)`
 
 ### `bfydir.handleRequest(req, res[, next])`
 
-this will look for `require('url').parse(req.url).{bundle,inline,min}`
+this will look at the query-string object `require('url').parse(req.url)`
+for various member attributes:
 
-* `bundle` - if set pipe a browserify-bundle-stream into `res` (or if the
+* `bundle` or `b` - if set pipe a browserify-bundle-stream into `res` (or if the
   bundle exists on disk pipe it directly from disk)
-* `inline` - if set pipe the content through `bfydir.inlineStream()`
-* `min` - if set pipe the content through `bfydir.minifyStream()`
+* `inline` or `i` - if set pipe the content through `bfydir.inlineStream()`
+* `min` or `m` - if set pipe the content through `bfydir.minifyStream()`
+* `transform` or `t` - (comma-separated list) if set use these transforms
+* `ignore` - (comma-separated list) if set tell browserify to ignore
 
 ### `var bStream = bfydir.bundleStream(opts)`
 
@@ -137,14 +156,15 @@ this will look for `require('url').parse(req.url).{bundle,inline,min}`
   piped into. the result gets piped to disk.
 * `opts` must be an object
   * `opts.urlPath` is used to identify the bundle-watcher
-  * `opts.entryPath` 
+  * `opts.entryPath`
   * `opts.bundlePath`
   * `opts.bundleOpts`
 
 ### `var mStream = bfydir.minifyStream(opts)`
 
 * `mStream` is a through-stream which buffers all content and then minifys it.
-  then it writes the result to disk.
+  then it writes the result to disk (so actually its just uglifyjs pretending
+  to be streaming :D).
 * `opts` must be an object
   * `opts.urlPath`
   * `opts.bundlePathMin`

@@ -1,0 +1,32 @@
+bfydir [<dir>] [-p,--port <port>] [-b,--bundles <bundles>] [-d,--debug]
+       [--key <key>] [--cert <cert>] [--pfx <pfx>]
+       [-a,--auth <user>:<pwd>[,<user>:<pwd>]]
+       [-h,--help]
+
+    <dir>     .. serve files from that directory (default: pwd)
+    <port>    .. listen on that port (default: 8001)
+    <bundles> .. write bundles into that directory (default: <dir>/.bfydir-bundles)
+    debug     .. write infos about bundling/minifying to stdout
+    <key>     .. path to ssl-key-file
+    <cert>    .. path to cert-key-file
+    <pfx>     .. path to pfx-file
+    auth      .. basic auth (comma separated list of user:pwd
+    help      .. only show this message, otherwise just start bfydir
+
+querystring-parameters:
+
+    bundle, b    .. bundles the requested file instead of serving it
+    min, m       .. minifies the bundle (sets b automatically)
+    inline, i    .. inlines the bundle into html (sets b)
+    transform, t .. comma-separated list of transforms (sets b)
+    ignore       .. comma-separated list of modules to ignore (sets b)
+
+example:
+
+    $ bfydir ~ -p 8080 -a user1:pwd1,user2:pwd2
+    $ echo "module.exports = 'a'" > ~/a.js
+    $ echo "module.exports = 'b'" > ~/b.js
+    $ echo "console.log(require('./a'), require('./b'))" > ~/c.js
+    $ node -e `curl "http://user1:pwd1@localhost:8005/c.js?b"`
+    a b
+

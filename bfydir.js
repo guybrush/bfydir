@@ -7,8 +7,8 @@ var fs = require('fs')
 var http = require('http')
 var EE = require('events').EventEmitter
 var util = require('util')
-var auth = require('basic-auth')
 
+var auth = require('basic-auth')
 var browserify = require('browserify')
 var watchify = require('watchify')
 var mkdirp = require('mkdirp')
@@ -30,7 +30,7 @@ function bfydir(opts) {
   self.bundlesPath = opts.bundles
                      || path.join(self.dirPath, '.bfydir-bundles')
   mkdirp.sync(self.bundlesPath)
-  var url_ = opts.url || '/'
+
   self.bundling = {}
   self.minifying = {}
   self.minified = {}
@@ -51,7 +51,7 @@ function bfydir(opts) {
       self.auth[s[0]] = s[1]
     })
   }
-  
+
   return this
 }
 util.inherits(bfydir, EE)
@@ -93,7 +93,7 @@ bfydir.prototype.handleRequest = function(req, res, next){
       return res.end()
     }
   }
-  
+
   var self = this
   var opts = {}
   var parsedUrl = url.parse(req.url, true)
@@ -116,6 +116,8 @@ bfydir.prototype.handleRequest = function(req, res, next){
       : parsedUrl.query.t !== undefined
         ? parsedUrl.query.t.split(',')
         : false
+    doIgnore = parsedUrl.query.ignore !== undefined
+      ? (''+parsedUrl.query.ignore).split(',') : false
   }
 
   var entryPath = path.resolve(path.join(self.dirPath, parsedUrl.pathname))
@@ -133,11 +135,10 @@ bfydir.prototype.handleRequest = function(req, res, next){
   opts.bundleOpts.cache = {}
   opts.bundleOpts.packageCache = {}
   opts.bundleOpts.fullPaths = false
-
+  opts.ignore = doIgnore
   opts.transform = doTransform
 
   if (!doBundle && !doInline && !doMin) {
-    // if (!next) return self.dirMount(req, res)
     if (!next) return self.serveDir(req, res)
     return next()
   }
@@ -232,8 +233,12 @@ bfydir.prototype.bundleStream = function(opts) {
     if (opts.transform)
       opts.transform.forEach(function(t){bw.transform(t)})
 
+    if (opts.ignore)
+      opts.ignore.forEach(function(i){bw.ignore(i)})
+
     var b = bw.bundle()
     var f = fs.createWriteStream(opts.bundlePath)
+
     b.pipe(f)
     b.on('error',onError)
     f.on('finish',onFinish)
@@ -274,7 +279,7 @@ bfydir.prototype.minifyStream = function(opts) {
 
   var t = through(write, end)
   var buff = ''
-  
+
   self.minifying[opts.urlPath] = t
   self.emit('minifying', info)
   self.emit('minifying:'+opts.urlPath, info)
@@ -342,10 +347,8 @@ function inlineStream(bundlePath) {
         +'<meta charset="utf-8"></head><body><script>')
       head = false
     }
-    // if (d.toString().match(reScript)) console.log(d.toString())
     var str = d.toString().replace(reScript,'')
     this.queue(str)
-    //this.queue((d+'').replace(reScript,''))
   }
   function end(){
     this.queue('</script></body></html>')
