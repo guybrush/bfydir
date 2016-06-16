@@ -18,7 +18,7 @@
   "license": "MIT",
   "dependencies": {
     "basic-auth": "^1",
-    "browserify": "^8",
+    "browserify": "^13",
     "bundle-collapser": "^1",
     "compression": "^1",
     "finalhandler": "0.3.3",
@@ -28,7 +28,7 @@
     "serve-static": "^1",
     "through": "~2.3.4",
     "uglify-js": "2.4.16",
-    "watchify": "^2"
+    "watchify": "^3"
   },
   "devDependencies": {
     "request": "^2"

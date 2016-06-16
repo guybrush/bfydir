@@ -33,7 +33,7 @@ else {
     var opts = {}
     opts.key = fs.readFileSync(key)
     opts.cert = fs.readFileSync(cert)
-    opts.pfx = fs.readFileSync(cert)
+    // opts.pfx = fs.readFileSync(cert)
     https.createServer(opts, bfydir.requestHandler()).listen(port)
   }
 
